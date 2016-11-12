@@ -2,45 +2,53 @@
 var axios = require('axios');
 
 // New York Times API
-var geocodeAPI = "35e5548c618555b1a43eb4759d26b260";
+var nytAPI = " ";
 
-// Helper Functions (in this case the only one is runQuery)
-var helpers = {
+	var helpers = {
 
-	// This function serves our purpose of running the query to geolocate. 
-	runQuery: function(location){
+	// This will run our query.
+	runQuery: function(term, start, end){
 
-		console.log(location);
+		// Adjust to get search terms in proper format
+		var term = term.trim();
+		var start = start.trim() + "0101";
+		var end = end.trim() + "1231";
 
-		//Figure out the geolocation
-		var queryURL = "http://api.opencagedata.com/geocode/v1/json?query=" + title + "&pretty=1&key=" + geocodeAPI;
 
-		return axios.get(queryURL)
-			.then(function(response){
-
-				console.log(response);
-				return response.data.results[0].formatted;
+		console.log("Query Run");
+		// Run a query using Axios. Then return the results as an object with an array.
+		// See the Axios documentation for details on how we structured this with the params.
+		return axios.get('https://api.nytimes.com/svc/search/v2/articlesearch.json', {
+			params: {
+			    'api-key': APIKey,
+			    'q': term,
+			    'begin_date': start,
+			    'end_date': end			
+			}
 		})
+		.then(function(results){
+			console.log("Axios Results", results.data.response);
 
+			return results.data.response;
+
+		});
 	},
 
 	// This function hits our own server to retrieve the record of query results
-	getHistory: function(){
+	getSaved: function(){
 
-		return axios.get('/api')
-			.then(function(response){
-
-				console.log(response);
-				return response;
-			});
+		return axios.get('/api/saved')
+			.then(function(results){
+				console.log("axios results", results);
+				return results;
+			})
 	},
 
 	// This function posts new searches to our database.
-	postHistory: function(location){
+	posSaved: function(){
 
 		return axios.post('/api', {title: title})
 			.then(function(results){
-
 				console.log("Posted to MongoDB");
 				return(results);
 			})
@@ -51,3 +59,4 @@ var helpers = {
 
 // We export the helpers function 
 module.exports = helpers;
+
