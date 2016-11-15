@@ -213,7 +213,6 @@
 /***/ function(module, exports) {
 
 	// shim for using process in browser
-
 	var process = module.exports = {};
 
 	// cached from whatever global is present so that test runners that stub it
@@ -224,22 +223,84 @@
 	var cachedSetTimeout;
 	var cachedClearTimeout;
 
+	function defaultSetTimout() {
+	    throw new Error('setTimeout has not been defined');
+	}
+	function defaultClearTimeout () {
+	    throw new Error('clearTimeout has not been defined');
+	}
 	(function () {
-	  try {
-	    cachedSetTimeout = setTimeout;
-	  } catch (e) {
-	    cachedSetTimeout = function () {
-	      throw new Error('setTimeout is not defined');
+	    try {
+	        if (typeof setTimeout === 'function') {
+	            cachedSetTimeout = setTimeout;
+	        } else {
+	            cachedSetTimeout = defaultSetTimout;
+	        }
+	    } catch (e) {
+	        cachedSetTimeout = defaultSetTimout;
 	    }
-	  }
-	  try {
-	    cachedClearTimeout = clearTimeout;
-	  } catch (e) {
-	    cachedClearTimeout = function () {
-	      throw new Error('clearTimeout is not defined');
+	    try {
+	        if (typeof clearTimeout === 'function') {
+	            cachedClearTimeout = clearTimeout;
+	        } else {
+	            cachedClearTimeout = defaultClearTimeout;
+	        }
+	    } catch (e) {
+	        cachedClearTimeout = defaultClearTimeout;
 	    }
-	  }
 	} ())
+	function runTimeout(fun) {
+	    if (cachedSetTimeout === setTimeout) {
+	        //normal enviroments in sane situations
+	        return setTimeout(fun, 0);
+	    }
+	    // if setTimeout wasn't available but was latter defined
+	    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+	        cachedSetTimeout = setTimeout;
+	        return setTimeout(fun, 0);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedSetTimeout(fun, 0);
+	    } catch(e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+	            return cachedSetTimeout.call(null, fun, 0);
+	        } catch(e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+	            return cachedSetTimeout.call(this, fun, 0);
+	        }
+	    }
+
+
+	}
+	function runClearTimeout(marker) {
+	    if (cachedClearTimeout === clearTimeout) {
+	        //normal enviroments in sane situations
+	        return clearTimeout(marker);
+	    }
+	    // if clearTimeout wasn't available but was latter defined
+	    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+	        cachedClearTimeout = clearTimeout;
+	        return clearTimeout(marker);
+	    }
+	    try {
+	        // when when somebody has screwed with setTimeout but no I.E. maddness
+	        return cachedClearTimeout(marker);
+	    } catch (e){
+	        try {
+	            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+	            return cachedClearTimeout.call(null, marker);
+	        } catch (e){
+	            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+	            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+	            return cachedClearTimeout.call(this, marker);
+	        }
+	    }
+
+
+
+	}
 	var queue = [];
 	var draining = false;
 	var currentQueue;
@@ -264,7 +325,7 @@
 	    if (draining) {
 	        return;
 	    }
-	    var timeout = cachedSetTimeout(cleanUpNextTick);
+	    var timeout = runTimeout(cleanUpNextTick);
 	    draining = true;
 
 	    var len = queue.length;
@@ -281,7 +342,7 @@
 	    }
 	    currentQueue = null;
 	    draining = false;
-	    cachedClearTimeout(timeout);
+	    runClearTimeout(timeout);
 	}
 
 	process.nextTick = function (fun) {
@@ -293,7 +354,7 @@
 	    }
 	    queue.push(new Item(fun, args));
 	    if (queue.length === 1 && !draining) {
-	        cachedSetTimeout(drainQueue, 0);
+	        runTimeout(drainQueue);
 	    }
 	};
 
@@ -19695,18 +19756,18 @@
 
 	'use strict';
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
 	// Here we include all of the sub-components
-	var Form = __webpack_require__(160);
+	var Search = __webpack_require__(160);
 	var Results = __webpack_require__(161);
-	var History = __webpack_require__(162);
+	var Saved = __webpack_require__(162);
 
 	// Helper Function
 	var helpers = __webpack_require__(163);
 
-	// This is the main component.
+	// This is the main component. 
 	var Main = React.createClass({
 		displayName: 'Main',
 
@@ -19716,7 +19777,7 @@
 			return {
 				searchTerm: "",
 				results: "",
-				history: [] /*Note how we added in this history state variable*/
+				saved: [] /*Note how we added in this history state variable*/
 			};
 		},
 
@@ -19727,7 +19788,7 @@
 			});
 		},
 
-		// If the component changes (i.e. if a search is entered)...
+		// If the component changes (i.e. if a search is entered)... 
 		componentDidUpdate: function componentDidUpdate(prevProps, prevState) {
 
 			if (prevState.searchTerm != this.state.searchTerm) {
@@ -19742,19 +19803,18 @@
 							results: data
 						});
 
-						// Run function to add the record to the db
-						// Lots of nesting going on! (This code could probably be optimized, but it gets the job done.)
-						helpers.postHistory(this.state.searchTerm).then(function (data) {
+						// After we've received the result... then post the search term to our history. 
+						helpers.postSaved(this.state.searchTerm).then(function (data) {
 							console.log("Updated!");
 
-							// Get the history AFTER we've posted the data.
-							helpers.getHistory().then(function (response) {
-								console.log("Current History", response.data);
-								if (response != this.state.history) {
-									console.log("History", response.data);
+							// After we've done the post... then get the updated history
+							helpers.getSaved().then(function (response) {
+								console.log("Current Saved", response.data);
+								if (response != this.state.saved) {
+									console.log("Saved", response.data);
 
 									this.setState({
-										history: response.data
+										saved: response.data
 									});
 								}
 							}.bind(this));
@@ -19767,12 +19827,13 @@
 		// The moment the page renders get the History
 		componentDidMount: function componentDidMount() {
 
-			helpers.getHistory().then(function (response) {
-				if (response != this.state.history) {
-					console.log("History", response.data);
+			// Get the latest history.
+			helpers.getSaved().then(function (response) {
+				if (response != this.state.saved) {
+					console.log("Saved", response.data);
 
 					this.setState({
-						history: response.data
+						saved: response.data
 					});
 				}
 			}.bind(this));
@@ -19819,7 +19880,7 @@
 				React.createElement(
 					'div',
 					{ className: 'row' },
-					React.createElement(History, { history: this.state.history })
+					React.createElement(Saved, { saved: this.state.saved })
 				)
 			);
 		}
@@ -19834,40 +19895,44 @@
 
 	"use strict";
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
-	// This is the form component.
-	var Form = React.createClass({
-		displayName: "Form",
+	// This is the form component. 
+	var Search = React.createClass({
+		displayName: "Search",
 
 
 		// Here we set a generic state associated with the text being searched for
 		getInitialState: function getInitialState() {
 			return {
-				term: ""
+				title: "",
+				startYear: "",
+				endYear: ""
 			};
 		},
 
-		// This function will respond to the user input
+		// This function will respond to the user input 
 		handleChange: function handleChange(event) {
 
 			// Here we create syntax to capture any change in text to the query terms (pre-search).
-			// See this Stack Overflow answer for more details:
+			// See this Stack Overflow answer for more details: 
 			// http://stackoverflow.com/questions/21029999/react-js-identifying-different-inputs-with-one-onchange-handler
 			var newState = {};
 			newState[event.target.id] = event.target.value;
 			this.setState(newState);
 		},
 
-		// When a user submits...
+		// When a user submits... 
 		handleClick: function handleClick() {
 
 			console.log("CLICK");
-			console.log(this.state.term);
+			console.log(this.state.title);
 
-			// Set the parent to have the search term
-			this.props.setTerm(this.state.term);
+			// Set the parent to have the search term,start year & end year
+			this.props.setTerm(this.state.title);
+			this.props.setTerm(this.state.startYear);
+			this.props.setTerm(this.state.endYear);
 		},
 
 		// Here we render the function
@@ -19882,7 +19947,7 @@
 					React.createElement(
 						"h3",
 						{ className: "panel-title text-center" },
-						"Query"
+						" Search "
 					)
 				),
 				React.createElement(
@@ -19900,15 +19965,37 @@
 								React.createElement(
 									"strong",
 									null,
-									"Location"
+									"Topic"
 								)
 							),
-							React.createElement("input", { type: "text", className: "form-control text-center", id: "term", onChange: this.handleChange, required: true }),
+							React.createElement("input", { type: "text", className: "form-control text-center", id: "topic", onChange: this.handleChange, required: true }),
+							React.createElement("br", null),
+							React.createElement(
+								"h4",
+								{ className: "" },
+								React.createElement(
+									"strong",
+									null,
+									"Start Year"
+								)
+							),
+							React.createElement("input", { type: "text", className: "form-control text-center", id: "startYear", onChange: this.handleChange, required: true }),
+							React.createElement("br", null),
+							React.createElement(
+								"h4",
+								{ className: "" },
+								React.createElement(
+									"strong",
+									null,
+									"End Year"
+								)
+							),
+							React.createElement("input", { type: "text", className: "form-control text-center", id: "endYear", onChange: this.handleChange, required: true }),
 							React.createElement("br", null),
 							React.createElement(
 								"button",
 								{ type: "button", className: "btn btn-primary", onClick: this.handleClick },
-								"Submit"
+								"Search"
 							)
 						)
 					)
@@ -19918,7 +20005,7 @@
 	});
 
 	// Export the component back for use in other files
-	module.exports = Form;
+	module.exports = Search;
 
 /***/ },
 /* 161 */
@@ -19926,7 +20013,7 @@
 
 	"use strict";
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
 	// This is the results component
@@ -19953,15 +20040,21 @@
 					"div",
 					{ className: "panel-body text-center" },
 					React.createElement(
-						"h1",
-						null,
-						"Address:"
-					),
-					React.createElement(
 						"p",
 						null,
-						this.props.address
-					)
+						this.props.topic
+					),
+					React.createElement(
+						"span",
+						null,
+						React.createElement("input", { type: "text", className: "form-control text-center", id: "" }),
+						React.createElement(
+							"button",
+							{ type: "button", className: "btn btn-primary", onClick: "" },
+							"Save"
+						)
+					),
+					React.createElement("br", null)
 				)
 			);
 		}
@@ -19976,12 +20069,13 @@
 
 	"use strict";
 
-	// Include React
+	// Include React 
 	var React = __webpack_require__(1);
 
 	// This is the history component. It will be used to show a log of  recent searches.
-	var History = React.createClass({
-		displayName: "History",
+	var Saved = React.createClass({
+		displayName: "Saved",
+
 
 		// Here we render the function
 		render: function render() {
@@ -19995,17 +20089,39 @@
 					React.createElement(
 						"h3",
 						{ className: "panel-title text-center" },
-						"Search History"
+						"Saved Articles"
 					)
 				),
 				React.createElement(
 					"div",
 					{ className: "panel-body text-center" },
-					this.props.history.map(function (search, i) {
+					React.createElement(
+						"span",
+						null,
+						React.createElement("input", { type: "text", className: "form-control text-center", id: "" }),
+						React.createElement(
+							"button",
+							{ type: "button", className: "btn btn-primary", onClick: "" },
+							"Remove"
+						)
+					),
+					React.createElement("br", null),
+					React.createElement(
+						"span",
+						null,
+						React.createElement("input", { type: "text", className: "form-control text-center", id: "" }),
+						React.createElement(
+							"button",
+							{ type: "button", className: "btn btn-primary", onClick: "" },
+							"Remove"
+						)
+					),
+					React.createElement("br", null),
+					this.props.saved.map(function (search, i) {
 						return React.createElement(
 							"p",
 							{ key: i },
-							search.location,
+							search.topic,
 							" - ",
 							search.date
 						);
@@ -20016,7 +20132,7 @@
 	});
 
 	// Export the component back for use in other files
-	module.exports = History;
+	module.exports = Saved;
 
 /***/ },
 /* 163 */
@@ -20027,42 +20143,49 @@
 	// Include the axios package for performing HTTP requests (promise based alternative to request)
 	var axios = __webpack_require__(164);
 
-	// Geocoder API
-	var geocodeAPI = "35e5548c618555b1a43eb4759d26b260";
+	// New York Times API
+	var nytAPI = "9d4a8986921972b65754ea0809d47c84:12:74623931";
 
-	// Helper Functions (in this case the only one is runQuery)
 	var helpers = {
 
-		// This function serves our purpose of running the query to geolocate.
-		runQuery: function runQuery(location) {
+		// This will run our query.
+		runQuery: function runQuery(term, start, end) {
 
-			console.log(location);
+			// Adjust to get search terms in proper format
+			var term = term.trim();
+			var start = start.trim() + "0101";
+			var end = end.trim() + "1231";
 
-			//Figure out the geolocation
-			var queryURL = "http://api.opencagedata.com/geocode/v1/json?query=" + location + "&pretty=1&key=" + geocodeAPI;
+			console.log("Query Run");
+			// Run a query using Axios. Then return the results as an object with an array.
+			// See the Axios documentation for details on how we structured this with the params.
+			return axios.get('https://api.nytimes.com/svc/search/v2/articlesearch.json', {
+				params: {
+					'api-key': APIKey,
+					'q': term,
+					'begin_date': start,
+					'end_date': end
+				}
+			}).then(function (results) {
+				console.log("Axios Results", results.data.response);
 
-			return axios.get(queryURL).then(function (response) {
-
-				console.log(response);
-				return response.data.results[0].formatted;
+				return results.data.response;
 			});
 		},
 
 		// This function hits our own server to retrieve the record of query results
-		getHistory: function getHistory() {
+		getSaved: function getSaved() {
 
-			return axios.get('/api').then(function (response) {
-
-				console.log(response);
-				return response;
+			return axios.get('/api/saved').then(function (results) {
+				console.log("axios results", results);
+				return results;
 			});
 		},
 
 		// This function posts new searches to our database.
-		postHistory: function postHistory(location) {
+		posSaved: function posSaved() {
 
-			return axios.post('/api', { location: location }).then(function (results) {
-
+			return axios.post('/api', { title: title }).then(function (results) {
 				console.log("Posted to MongoDB");
 				return results;
 			});
@@ -20070,7 +20193,7 @@
 
 	};
 
-	// We export the helpers function
+	// We export the helpers function 
 	module.exports = helpers;
 
 /***/ },
