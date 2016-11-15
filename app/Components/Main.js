@@ -2,7 +2,7 @@
 var React = require('react');
 
 // Here we include all of the sub-components
-var search = require('./Children/search');
+var Search = require('./Children/Search');
 var Results = require('./Children/Results');
 var Saved = require('./Children/Saved');
 
@@ -46,19 +46,19 @@ var Main = React.createClass({
 						})
 
 						// After we've received the result... then post the search term to our history. 
-						helpers.postHistory(this.state.searchTerm)
+						helpers.postSaved(this.state.searchTerm)
 							.then(function(data){
 								console.log("Updated!");
 
 								// After we've done the post... then get the updated history
-								helpers.getHistory()
+								helpers.getSaved()
 									.then(function(response){
-										console.log("Current History", response.data);
-										if (response != this.state.history){
-											console.log ("History", response.data);
+										console.log("Current Saved", response.data);
+										if (response != this.state.saved){
+											console.log ("Saved", response.data);
 
 											this.setState({
-												history: response.data
+												saved: response.data
 											})
 										}
 									}.bind(this))	
@@ -74,13 +74,13 @@ var Main = React.createClass({
 	componentDidMount: function(){
 
 		// Get the latest history.
-		helpers.getHistory()
+		helpers.getSaved()
 			.then(function(response){
-				if (response != this.state.history){
-					console.log ("History", response.data);
+				if (response != this.state.saved){
+					console.log ("Saved", response.data);
 
 					this.setState({
-						history: response.data
+						saved: response.data
 					})
 				}
 			}.bind(this))
@@ -116,7 +116,7 @@ var Main = React.createClass({
 
 				<div className="row">
 
-					<History history={this.state.history}/> 
+					<Saved saved={this.state.saved}/> 
 
 				</div>
 

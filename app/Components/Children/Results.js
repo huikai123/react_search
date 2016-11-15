@@ -22,30 +22,7 @@ var Results = React.createClass({
 					</span>
 					<br />
 						
-					<span>
-						<input type="text" className="form-control text-center" id="" />
-						<button type="button" className="btn btn-primary" onClick="">Save</button>
-					</span>
-					<br />
-						
-					<span>
-						<input type="text" className="form-control text-center" id="" />
-						<button type="button" className="btn btn-primary" onClick="">Save</button>
-					</span>
-					<br />
-						
-					<span>
-						<input type="text" className="form-control text-center" id="" />
-						<button type="button" className="btn btn-primary" onClick="">Save</button>
-					</span>
-					<br />
-						
-					<span>
-						<input type="text" className="form-control text-center" id="" />
-						<button type="button" className="btn btn-primary" onClick="">Save</button>
-					</span>
-					<br />
-
+					
 				</div>
 			</div>
 

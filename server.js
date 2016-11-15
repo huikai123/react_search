@@ -47,7 +47,7 @@ app.get('/', function(req, res){
 app.get('/api/', function(req, res) {
 
   // We will find all the records, sort it in descending order, then limit the records to 15
-  History.find({}).sort([['date', 'descending']]).limit(15)
+  Article.find({}).sort([['date', 'descending']]).limit(15)
     .exec(function(err, doc){
 
       if(err){
